@@ -1,0 +1,17 @@
+{
+  "name": "tic-tac-toe",
+  "version": "1.0.0",
+  "description": "online multiplayer tic-tac-toe game using Node.js and Socket.io",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "metalman",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
+}

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Multiplayer Tic-Tac-Toe</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f0f0; }
+        canvas { border: 2px solid #333; background: white; }
+        #status { margin-top: 20px; font-family: Arial, sans-serif; font-size: 18px; }
+    </style>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script> <!-- Latest Socket.io CDN as of 2025 -->
+</head>
+<body>
+    <canvas id="board" width="300" height="300"></canvas>
+    <div id="status">Connecting...</div>
+
+    <script>
+        const socket = io('http://192.168.50.141:3000'); // Change to your server URL if deployed
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        const cellSize = 100;
+        let board = Array(9).fill(null); // 0-8 indices
+        let mySymbol = null; // 'X' or 'O'
+        let myTurn = false;
+
+        // Draw board grid
+        function drawBoard() {
+            ctx.clearRect(0, 0, 300, 300);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 4;
+            for (let i = 1; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * cellSize, 0);
+                ctx.lineTo(i * cellSize, 300);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * cellSize);
+                ctx.lineTo(300, i * cellSize);
+                ctx.stroke();
+            }
+            // Draw symbols
+            ctx.font = '80px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            board.forEach((sym, i) => {
+                if (sym) {
+                    const x = (i % 3) * cellSize + cellSize / 2;
+                    const y = Math.floor(i / 3) * cellSize + cellSize / 2;
+                    ctx.fillText(sym, x, y);
+                }
+            });
+        }
+
+        // Get cell from click
+        canvas.addEventListener('click', (e) => {
+            if (!myTurn || !mySymbol) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / cellSize);
+            const y = Math.floor((e.clientY - rect.top) / cellSize);
+            const index = y * 3 + x;
+            if (board[index] === null) {
+                socket.emit('move', { index });
+            }
+        });
+
+        // Socket events
+        socket.on('connect', () => {
+            status.textContent = 'Waiting for opponent...';
+            socket.emit('join');
+        });
+
+        socket.on('start', (data) => {
+            mySymbol = data.symbol;
+            myTurn = data.turn;
+            board = Array(9).fill(null);
+            drawBoard();
+            status.textContent = `You are ${mySymbol}. ${myTurn ? 'Your turn!' : 'Opponent\'s turn.'}`;
+        });
+
+        socket.on('update', (data) => {
+            board = data.board;
+            myTurn = data.turn;
+            drawBoard();
+            status.textContent = myTurn ? 'Your turn!' : 'Opponent\'s turn.';
+        });
+
+        socket.on('win', (winner) => {
+            drawBoard();
+            status.textContent = winner === mySymbol ? 'You win!' : 'You lose!';
+            myTurn = false;
+        });
+
+        socket.on('tie', () => {
+            drawBoard();
+            status.textContent = 'It\'s a tie!';
+            myTurn = false;
+        });
+
+        socket.on('reset', () => {
+            board = Array(9).fill(null);
+            myTurn = mySymbol === 'X'; // X starts
+            drawBoard();
+            status.textContent = `Game reset. ${myTurn ? 'Your turn!' : 'Opponent\'s turn.'}`;
+        });
+    </script>
+</body>
+</html>
